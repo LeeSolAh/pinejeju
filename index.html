@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제주 여행 플래너 🍊</title>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<style>
+  :root {
+    --bg:#FBF7F0; --card:#fff; --ink:#26251F; --sub:#9B9484; --line:#EEE8DA;
+    --jeju:#F97316; --sea:#2E90FA; --green:#2E6B5E;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif; }
+  .app { max-width:560px; margin:0 auto; padding:0 16px 80px; }
+  header { text-align:center; padding:26px 4px 4px; }
+  h1 { font-size:24px; font-weight:800; margin:0; }
+  .subtitle { font-size:13px; color:var(--sub); margin-top:4px; }
+  .card { background:var(--card); border-radius:24px; padding:18px; margin-top:14px;
+    box-shadow:0 2px 10px rgba(60,50,30,.05); }
+  .label { font-size:12.5px; font-weight:800; color:var(--green); margin:0 0 6px 4px; }
+  .hint { font-size:11.5px; color:#B4AC9A; line-height:1.5; margin-top:6px; }
+  input, select, textarea { width:100%; border:2px solid var(--line); border-radius:14px;
+    padding:11px 12px; font-size:14.5px; background:#FDFCF9; outline:none; font-family:inherit;
+    margin-bottom:10px; color:var(--ink); }
+  textarea { resize:none; height:56px; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; min-width:0; }
+  button { font-family:inherit; cursor:pointer; }
+  .primary { width:100%; background:var(--jeju); color:#fff; border:none; border-radius:16px;
+    padding:13px; font-size:15px; font-weight:800; }
+  .primary.sea { background:var(--sea); }
+  .primary.green { background:var(--green); }
+  .mini { border:none; background:#F0EBE0; color:#6E6858; font-size:12px; border-radius:999px;
+    padding:5px 10px; }
+  .tag { display:inline-block; font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 9px; }
+  .tag.food { background:#F9731618; color:#E0662E; }
+  .tag.act { background:#2E90FA18; color:#2E90FA; }
+  .spot { border-top:1px dashed var(--line); padding:12px 0; }
+  .spot .name { font-size:15px; font-weight:700; }
+  .spot .addr { font-size:12px; color:var(--sub); margin-top:2px; word-break:keep-all; }
+  .spot select { width:auto; padding:6px 8px; font-size:12.5px; margin:0; border-radius:999px; }
+  .spot input.cmt { font-size:12.5px; padding:7px 10px; margin:8px 0 0; border-radius:12px; }
+  .spotbtns { display:flex; gap:6px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  .weather-strip { display:flex; gap:8px; overflow-x:auto; padding:4px 2px; -webkit-overflow-scrolling:touch; }
+  .wday { flex-shrink:0; width:76px; text-align:center; border:2px solid var(--line);
+    border-radius:16px; padding:9px 4px; font-size:12px; background:#FDFCF9; }
+  .wday.trip { border-color:var(--jeju); background:#F9731610; }
+  .wday .d { font-weight:800; }
+  .wday .t { font-size:12.5px; margin-top:2px; }
+  .wday .r { color:var(--sea); font-size:11px; }
+  .dayplan { margin-top:14px; }
+  .daytitle { font-size:15.5px; font-weight:800; }
+  .window { font-size:12px; color:var(--sub); margin:2px 0 8px; }
+  .leg { display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px dashed var(--line); }
+  .num { width:26px; height:26px; border-radius:50%; background:var(--jeju); color:#fff;
+    font-weight:800; font-size:12.5px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .num.home { background:var(--ink); }
+  .legmeta { font-size:11.5px; color:var(--sub); padding-left:36px; }
+  .total { margin-top:8px; background:#EFF6F3; border-radius:14px; padding:9px 13px;
+    font-size:12.5px; font-weight:700; color:var(--green); }
+  .warn { margin-top:6px; background:#FDECEA; border-radius:14px; padding:9px 13px;
+    font-size:12.5px; color:#C0392B; }
+  svg.map { width:100%; background:#EAF4FB; border-radius:18px; margin-top:6px; }
+  .empty { color:var(--sub); font-size:13px; padding:8px 4px; line-height:1.6; }
+  .savedok { color:var(--green); font-size:12px; font-weight:700; margin-left:8px; }
+  .cardhead { display:flex; align-items:center; }
+  .cardhead .label { margin-bottom:0; flex:1; }
+  .toggle { border:none; background:#F0EBE0; color:#6E6858; border-radius:999px;
+    width:32px; height:32px; font-size:14px; flex-shrink:0; }
+  .findbtn { flex:0 0 auto; width:auto; border:none; background:var(--sea); color:#fff;
+    border-radius:14px; padding:0 14px; font-size:13px; font-weight:700; margin-bottom:10px; }
+  .psoverlay { position:fixed; inset:0; background:rgba(38,37,31,.45); display:none;
+    align-items:flex-end; justify-content:center; z-index:50; }
+  .psoverlay.on { display:flex; }
+  .pssheet { background:#fff; width:100%; max-width:560px; border-radius:24px 24px 0 0;
+    padding:20px 20px 28px; max-height:80vh; overflow-y:auto; }
+  .psitem { border:2px solid var(--line); border-radius:14px; padding:10px 12px;
+    margin-bottom:8px; cursor:pointer; font-size:13.5px; }
+  .psitem b { font-size:14.5px; }
+  .psitem .addr { color:var(--sub); font-size:12px; margin-top:2px; }
+  .folder { display:flex; align-items:center; gap:8px; width:100%; border:none; background:#F7F3EA;
+    border-radius:14px; padding:12px 14px; font-size:14px; font-weight:800; margin-top:10px;
+    font-family:inherit; color:var(--ink); }
+  .folder .cnt { margin-left:auto; color:var(--sub); font-weight:700; font-size:13px; }
+  .gbody { font-size:13px; line-height:1.75; padding:12px 15px; background:#FDFCF9;
+    border:2px solid var(--line); border-top:none; border-radius:0 0 14px 14px; margin-top:-4px;
+    word-break:keep-all; }
+  .gbody a { color:var(--sea); font-weight:700; }
+  .sprow { display:flex; align-items:center; gap:8px; }
+  .sprow .name { flex:1; min-width:0; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .spdetail { margin-top:9px; background:#FBF7F0; border-radius:12px; padding:11px 12px; }
+  .holdlabel { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; margin-top:9px; }
+  .holdlabel input { width:auto; margin:0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>제주 여행 플래너 🍊</h1>
+    <div class="subtitle">우리의 제주, 한 페이지로 정리하기</div>
+  </header>
+
+  <!-- 여행 기간 -->
+  <div class="card">
+    <div class="label">🗓️ 여행 기간</div>
+    <div class="row">
+      <input type="date" id="tripStart">
+      <input type="date" id="tripEnd">
+    </div>
+    <div class="hint">기간을 바꾸면 일정 Day 수와 날씨 표시가 함께 바뀌어요.</div>
+  </div>
+
+  <!-- 날씨 -->
+  <div class="card">
+    <div class="cardhead">
+      <div class="label">🌤️ 제주 날씨</div>
+      <button class="toggle" id="tg-weather" onclick="toggleSec('weather')">▾</button>
+    </div>
+    <div id="sec-weather">
+      <div id="weatherBody" class="weather-strip"><div class="empty">날씨 불러오는 중…</div></div>
+      <div class="hint" id="weatherHint"></div>
+    </div>
+  </div>
+
+  <!-- 항공권 -->
+  <div class="card">
+    <div class="cardhead">
+      <div class="label">✈️ 항공권 정보</div>
+      <button class="toggle" id="tg-flight" onclick="toggleSec('flight')">▾</button>
+    </div>
+    <div id="sec-flight">
+      <div class="hint" style="margin:0 0 4px 4px;">🛬 가는 편 · 제주 도착 시각</div>
+      <input type="time" id="arrTime">
+      <input type="text" id="goMemo" placeholder="가는 편 메모 (편명, 예약번호 등)">
+      <div class="hint" style="margin:4px 0 4px 4px;">🛫 오는 편 · 제주 출발 시각</div>
+      <input type="time" id="retTime">
+      <input type="text" id="backMemo" placeholder="오는 편 메모 (편명, 예약번호 등)">
+      <div class="hint">첫날 일정은 도착 후 70분(수하물+렌트카 인수), 마지막 날은 출발 2시간 30분 전까지로 자동 계산돼요.</div>
+    </div>
+  </div>
+
+  <!-- 렌트카 -->
+  <div class="card">
+    <div class="cardhead">
+      <div class="label">🚗 렌트카 정보</div>
+      <button class="toggle" id="tg-car" onclick="toggleSec('car')">▾</button>
+    </div>
+    <div id="sec-car">
+      <div class="row">
+        <input type="text" id="carCompany" placeholder="업체명">
+        <input type="text" id="carResNo" placeholder="예약번호">
+      </div>
+      <div class="row">
+        <input type="text" id="carPickup" placeholder="인수 (예: 13일 11:00)">
+        <input type="text" id="carDropoff" placeholder="반납 (예: 16일 17:00)">
+      </div>
+      <input type="text" id="carMemo" placeholder="메모 (보험, 차종 등)">
+    </div>
+  </div>
+
+  <!-- 숙소 -->
+  <div class="card">
+    <div class="cardhead">
+      <div class="label">🏠 숙소 (경로의 출발점)</div>
+      <button class="toggle" id="tg-lodge" onclick="toggleSec('lodge')">▾</button>
+    </div>
+    <div id="sec-lodge">
+      <input type="text" id="lodgeName" placeholder="숙소 이름">
+      <div class="row">
+        <input type="text" id="lodgeAddr" placeholder="숙소 주소 (경로 계산에 필요)">
+        <button class="findbtn" onclick="openPlaceSearch('lodge')">🔍 검색</button>
+      </div>
+      <button class="primary green" onclick="saveLodging()">숙소 저장 · 위치 찾기</button>
+      <div class="hint" id="lodgeStatus">숙소가 없으면 제주공항에서 출발하는 것으로 계산해요.</div>
+
+      <div class="label" style="margin-top:16px;">🏨 해비치 이용 안내 (항목을 누르면 펼쳐져요)</div>
+      <button class="folder" onclick="toggleGuide(0)">🍳 조식<span class="cnt" id="gArrow0">▸</span></button>
+      <div class="gbody" id="gBody0" style="display:none;">
+        호텔동 <b>'섬모라'</b> / 리조트동 <b>'이디'</b>에서 <b>07:00~10:00</b> 운영.<br>
+        섬모라 기준 성인 65,000원 · 소인 36,000원 — <b>예약 상품에 조식 포함인지 먼저 확인!</b><br>
+        붐비는 9시 이후보다 오픈 직후가 여유로워요.
+      </div>
+      <button class="folder" onclick="toggleGuide(1)">🏊 수영장<span class="cnt" id="gArrow1">▸</span></button>
+      <div class="gbody" id="gBody1" style="display:none;">
+        <b>실내 06:30~22:00 · 야외 09:00~22:00</b>.<br>
+        리조트 야외 풀은 <b>만 19세 이상 성인 전용</b>이며 투숙객 무료. 호텔 수영장은 별도 요금이 있을 수 있어요(성인 1만원 선).<br>
+        매월 <b>마지막 주 월요일 정기 휴장</b> — 여행 중 해당되는지 확인!
+      </div>
+      <button class="folder" onclick="toggleGuide(2)">💪 헬스장(피트니스)<span class="cnt" id="gArrow2">▸</span></button>
+      <div class="gbody" id="gBody2" style="display:none;">
+        투숙객 이용 가능. 운영시간은 시즌마다 달라서 <a href="tel:0647808000">064-780-8000</a> 프론트 확인이 정확해요.<br>
+        운동복·실내용 운동화는 챙겨가야 해요.
+      </div>
+      <button class="folder" onclick="toggleGuide(3)">🧖 사우나<span class="cnt" id="gArrow3">▸</span></button>
+      <div class="gbody" id="gBody3" style="display:none;">
+        유료 이용 — 성인 15,000원 · 소아 10,000원 선.<br>
+        수영장과 같은 구역(윈터가든)에 있고, <b>마지막 주 월요일 휴무</b>가 같이 적용돼요.
+      </div>
+      <button class="folder" onclick="toggleGuide(4)">🔑 체크인 · 체크아웃<span class="cnt" id="gArrow4">▸</span></button>
+      <div class="gbody" id="gBody4" style="display:none;">
+        <b>체크인 15:00 / 체크아웃 12:00</b>.<br>
+        일찍 도착하거나 늦게 떠나는 날엔 <b>프론트에 짐 보관</b>을 맡기고 놀러 다니면 돼요.
+      </div>
+      <button class="folder" onclick="toggleGuide(5)">👕 세탁 서비스<span class="cnt" id="gArrow5">▸</span></button>
+      <div class="gbody" id="gBody5" style="display:none;">
+        런드리 서비스 제공 — 객실 내 세탁 신청서를 작성하고 프론트/하우스키핑에 요청하면 수거해 가요.<br>
+        다리미도 요청하면 빌려줘요.
+      </div>
+      <button class="folder" onclick="toggleGuide(6)">🛎️ 컨시어지 연락처<span class="cnt" id="gArrow6">▸</span></button>
+      <div class="gbody" id="gBody6" style="display:none;">
+        ☎ <a href="tel:0647808000">064-780-8000</a> (프론트 대표번호 · 누르면 바로 전화)<br>
+        레스토랑 예약, 짐 보관, 택시 호출, 시설 운영시간 등 뭐든 여기로 물어보면 돼요.
+      </div>
+      <div class="hint">* 운영시간·요금은 호텔 사정으로 바뀔 수 있어요. 중요한 건 전화로 한 번 더 확인!</div>
+    </div>
+  </div>
+
+  <!-- 스팟 추가 -->
+  <div class="card">
+    <div class="label">📍 가고 싶은 스팟 추가</div>
+    <input type="text" id="spotName" placeholder="이름 (예: 우진해장국)">
+    <select id="spotCat">
+      <option value="auto">분류: 자동</option>
+      <option value="food">🍽️ 맛집</option>
+      <option value="act">🎡 액티비티</option>
+    </select>
+    <div class="row">
+      <input type="text" id="spotAddr" placeholder="주소 (검색하면 자동 입력)">
+      <button class="findbtn" onclick="openPlaceSearch('spot')">🔍 검색</button>
+    </div>
+    <input type="text" id="spotCmt" placeholder="코멘트 (예: 웨이팅 있음, 일몰 맛집)">
+    <button class="primary" onclick="addSpot()">＋ 스팟 저장</button>
+    <div class="hint">저장하면 위치를 자동으로 찾아요. 못 찾으면 주소를 넣고 다시 저장해 주세요.</div>
+  </div>
+
+  <!-- 스팟 목록 -->
+  <div class="card">
+    <div class="label">🗂️ 스팟 목록</div>
+    <div id="spotList"><div class="empty">아직 저장된 스팟이 없어요.</div></div>
+  </div>
+
+  <!-- 일정 & 경로 -->
+  <div class="card">
+    <div class="label">🧭 날짜별 일정 & 최적 경로</div>
+    <button class="primary sea" onclick="autoAssign()">✨ 미배치 스팟 자동으로 나누기</button>
+    <div class="hint">스팟마다 Day를 직접 골라도 되고, 버튼을 누르면 가까운 곳끼리 묶어 자동 배치해요. 경로는 숙소에서 출발해 가까운 순서로 정렬돼요.</div>
+    <div id="planBody"></div>
+  </div>
+</div>
+
+<div class="psoverlay" id="psOverlay" onclick="closePS(event)">
+  <div class="pssheet" onclick="event.stopPropagation()">
+    <div class="label">🔍 장소 검색</div>
+    <div class="row">
+      <input type="text" id="psQuery" placeholder="예: 탄산온천" onkeydown="if(event.key==='Enter')doPlaceSearch()">
+      <button class="findbtn" onclick="doPlaceSearch()">검색</button>
+    </div>
+    <div id="psResults" class="empty">이름으로 검색하고 목록에서 고르면 주소와 위치가 자동 저장돼요.</div>
+    <button class="mini" style="margin-top:10px;" onclick="openPostcodeFromPS()">🏷️ 일반 주소로 검색 (우편번호 창)</button>
+    <div id="psKeyArea" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<script>
+// ================= 상태 =================
+const KEY = "jeju-trip-v1";
+const AIRPORT = { name: "제주공항", lat: 33.5104, lng: 126.4914 };
+let S = {
+  tripStart: "2026-08-13", tripEnd: "2026-08-16",
+  arrTime: "", retTime: "", goMemo: "", backMemo: "", ui: {},
+  car: { company: "", resNo: "", pickup: "", dropoff: "", memo: "" },
+  lodging: null, // {name, address, lat, lng}
+  spots: [] // {id, name, cat, address, comment, day, lat, lng}
+};
+try {
+  const saved = localStorage.getItem(KEY);
+  if (saved) S = Object.assign(S, JSON.parse(saved));
+} catch (e) {}
+S.ui = S.ui || {};
+if (S.flightMemo && !S.goMemo) S.goMemo = S.flightMemo;
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const $ = (id) => document.getElementById(id);
+
+// ================= 분류 자동 추천 =================
+const FOOD_WORDS = ["식당","맛집","국밥","해장","김밥","국수","냉면","칼국수","라멘","우동","초밥","스시","오마카세","횟집","물회","수산","고기","흑돼지","갈비","삼겹","곱창","치킨","닭","백숙","전복","해물","보말","성게","전골","찌개","떡볶이","분식","돈까스","카레","버거","피자","파스타","브런치","베이커리","빵","도넛","디저트","케이크","카페","커피","빙수","젤라또","아이스크림","포차","주점","맥주","다이닝","레스토랑","뷔페","오는정","해녀"];
+const ACT_WORDS = ["박물관","미술관","갤러리","전시","공원","수목원","정원","식물원","동물원","아쿠아리움","해변","해수욕장","오름","폭포","계곡","둘레길","숲","곶자왈","등대","전망대","케이블카","루지","카트","서핑","요트","낚시","승마","테마파크","랜드","월드","체험","공방","서점","책방","사찰","마을","시장","거리","포구","항","목장","농장","글램핑","섭지","우도","비자림","절물"];
+function autoCat(name) {
+  if (FOOD_WORDS.some(w => name.includes(w))) return "food";
+  if (ACT_WORDS.some(w => name.includes(w))) return "act";
+  return "act";
+}
+
+// ================= 거리/시간 =================
+function haversine(a, b) {
+  const R = 6371, rad = d => d * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const roadKm = km => km * 1.35;
+const carMin = km => Math.max(3, Math.round(roadKm(km) / 40 * 60) + 4); // 제주 평균 40km/h
+function orderNN(start, stops) {
+  const rest = [...stops], out = [];
+  let cur = start;
+  while (rest.length) {
+    let bi = 0, bd = Infinity;
+    rest.forEach((p, i) => { const d = haversine(cur, p); if (d < bd) { bd = d; bi = i; } });
+    cur = rest.splice(bi, 1)[0]; out.push(cur);
+  }
+  return out;
+}
+
+// ================= 지오코딩 (OpenStreetMap, 무료) =================
+async function geocode(q) {
+  try {
+    const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&q=" + encodeURIComponent(q));
+    const j = await r.json();
+    if (j && j[0]) return { lat: +j[0].lat, lng: +j[0].lon };
+  } catch (e) {}
+  return null;
+}
+async function geocodeSpot(name, address) {
+  return (address && await geocode(address))
+    || await geocode(name + " 제주")
+    || await geocode(name);
+}
+
+// ================= 날짜 헬퍼 =================
+const DOW = ["일","월","화","수","목","금","토"];
+function dayDates() {
+  const list = [];
+  if (!S.tripStart) return list;
+  const s = new Date(S.tripStart + "T00:00:00");
+  const e = S.tripEnd ? new Date(S.tripEnd + "T00:00:00") : s;
+  for (let d = new Date(s); d <= e && list.length < 10; d.setDate(d.getDate() + 1)) {
+    list.push(d.toISOString().slice(0, 10));
+  }
+  return list;
+}
+const fmtDate = (iso) => {
+  const d = new Date(iso + "T00:00:00");
+  return (d.getMonth()+1) + "/" + d.getDate() + "(" + DOW[d.getDay()] + ")";
+};
+const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const fromMin = (m) => String(Math.floor(m/60)).padStart(2,"0") + ":" + String(m%60).padStart(2,"0");
+function dayWindow(i, n) {
+  let start = 9 * 60, end = 21 * 60;
+  if (i === 0 && S.arrTime) start = Math.min(20*60, toMin(S.arrTime) + 70);
+  if (i === n - 1 && S.retTime) end = Math.max(start + 60, toMin(S.retTime) - 150);
+  return [start, end];
+}
+
+// ================= 날씨 (Open-Meteo, 무료) =================
+const WMOJI = c => c===0?"☀️":c<=2?"🌤️":c===3?"☁️":c<=48?"🌫️":c<=57?"🌦️":c<=67?"🌧️":c<=77?"🌨️":c<=82?"🌧️":"⛈️";
+async function fetchWeather() {
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=33.5&longitude=126.53&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FSeoul&forecast_days=16");
+    const j = await r.json();
+    renderWeather(j.daily);
+  } catch (e) {
+    $("weatherBody").innerHTML = '<div class="empty">날씨를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</div>';
+  }
+}
+function renderWeather(d) {
+  const trip = new Set(dayDates());
+  let html = "", anyTrip = false;
+  for (let i = 0; i < d.time.length; i++) {
+    const isTrip = trip.has(d.time[i]);
+    if (isTrip) anyTrip = true;
+    html += '<div class="wday' + (isTrip ? " trip" : "") + '">'
+      + '<div class="d">' + fmtDate(d.time[i]) + '</div>'
+      + '<div style="font-size:22px;margin:3px 0;">' + WMOJI(d.daily_weather_code ? d.daily_weather_code[i] : d.weather_code[i]) + '</div>'
+      + '<div class="t">' + Math.round(d.temperature_2m_min[i]) + '° / <b>' + Math.round(d.temperature_2m_max[i]) + '°</b></div>'
+      + '<div class="r">💧' + d.precipitation_probability_max[i] + '%</div>'
+      + '</div>';
+  }
+  $("weatherBody").innerHTML = html;
+  $("weatherHint").textContent = anyTrip
+    ? "주황 테두리가 여행 날짜예요."
+    : "여행일이 다가오면(16일 이내) 여행 날짜 예보가 강조돼요.";
+  const firstTrip = d.time.findIndex(t => trip.has(t));
+  if (firstTrip > 2) $("weatherBody").scrollLeft = firstTrip * 84 - 20;
+}
+
+// ================= 숙소 =================
+async function saveLodging() {
+  const name = $("lodgeName").value.trim(), addr = $("lodgeAddr").value.trim();
+  if (!name && !addr) { S.lodging = null; save(); renderPlan(); return; }
+  $("lodgeStatus").textContent = "위치 찾는 중…";
+  let c = null;
+  if (pendingGeo && pendingGeo.target === "lodge" && addr === pendingGeo.addr) {
+    c = { lat: pendingGeo.lat, lng: pendingGeo.lng }; pendingGeo = null;
+  } else {
+    c = await geocodeSpot(name || addr, addr);
+  }
+  S.lodging = { name: name || "숙소", address: addr, lat: c ? c.lat : null, lng: c ? c.lng : null };
+  save();
+  $("lodgeStatus").textContent = c ? "✅ 위치를 찾았어요! 경로가 숙소 기준으로 계산돼요."
+    : "⚠️ 위치를 못 찾았어요. 주소를 더 자세히 적고 다시 저장해 주세요. (그동안은 공항 기준으로 계산)";
+  renderPlan();
+}
+
+// ================= 스팟 =================
+async function addSpot() {
+  const name = $("spotName").value.trim();
+  if (!name) return;
+  const catSel = $("spotCat").value;
+  const spot = {
+    id: Date.now().toString(36),
+    name,
+    cat: catSel === "auto" ? autoCat(name) : catSel,
+    address: $("spotAddr").value.trim(),
+    comment: $("spotCmt").value.trim(),
+    day: 0, lat: null, lng: null
+  };
+  if (pendingGeo && pendingGeo.target === "spot" && spot.address === pendingGeo.addr) {
+    spot.lat = pendingGeo.lat; spot.lng = pendingGeo.lng; pendingGeo = null;
+  }
+  S.spots.push(spot); save(); renderSpots(); renderPlan();
+  $("spotName").value = ""; $("spotAddr").value = ""; $("spotCmt").value = ""; $("spotCat").value = "auto";
+  if (!spot.lat) {
+    const c = await geocodeSpot(spot.name, spot.address);
+    if (c) { spot.lat = c.lat; spot.lng = c.lng; save(); renderSpots(); renderPlan(); }
+  }
+}
+function delSpot(id) {
+  if (!confirm("이 스팟을 삭제할까요?")) return;
+  S.spots = S.spots.filter(s => s.id !== id); save(); renderSpots(); renderPlan();
+}
+function setDay(id, v) {
+  const s = S.spots.find(x => x.id === id);
+  if (s) { s.day = +v; save(); renderPlan(); }
+}
+function setCmt(id, v) {
+  const s = S.spots.find(x => x.id === id);
+  if (s) { s.comment = v; save(); }
+}
+function flipCat(id) {
+  const s = S.spots.find(x => x.id === id);
+  if (s) { s.cat = s.cat === "food" ? "act" : "food"; save(); renderSpots(); }
+}
+async function retryGeo(id) {
+  const s = S.spots.find(x => x.id === id);
+  if (!s) return;
+  const c = await geocodeSpot(s.name, s.address);
+  if (c) { s.lat = c.lat; s.lng = c.lng; save(); renderSpots(); renderPlan(); }
+  else alert("위치를 못 찾았어요. 주소를 채우거나 더 자세히 적어주세요.");
+}
+const naver = (name) => "https://search.naver.com/search.naver?query=" + encodeURIComponent(name);
+
+let openInfo = {};
+function toggleInfo(id) { openInfo[id] = !openInfo[id]; renderSpots(); }
+function setHold(id, on) {
+  const s = S.spots.find(x => x.id === id);
+  if (!s) return;
+  s.hold = !!on;
+  if (s.hold) s.day = 0;
+  save(); renderSpots(); renderPlan();
+}
+function spotRow(s, days) {
+  const open = !!openInfo[s.id];
+  const opts = ['<option value="0"' + (s.day===0?" selected":"") + '>Day 미정</option>']
+    .concat(days.map((d, i) => '<option value="' + (i+1) + '"' + (s.day===i+1?" selected":"") + '>Day ' + (i+1) + ' · ' + fmtDate(d) + '</option>')).join("");
+  let html = '<div class="spot">'
+    + '<div class="sprow">'
+    + '<span class="name" onclick="toggleInfo(\'' + s.id + '\')">' + (open ? "▾ " : "▸ ") + esc(s.name) + '</span>'
+    + '<span class="tag ' + s.cat + '" onclick="flipCat(\'' + s.id + '\')" title="분류 전환">' + (s.cat==="food"?"맛집":"액티비티") + '</span>'
+    + (s.hold ? '<span style="font-size:11.5px;color:var(--sub);font-weight:700;">보류</span>'
+              : '<select onchange="setDay(\'' + s.id + '\', this.value)">' + opts + '</select>')
+    + '</div>';
+  if (open) {
+    html += '<div class="spdetail">'
+      + (s.address ? '<div class="addr">📍 ' + esc(s.address) + '</div>' : '<div class="addr">📍 주소 없음</div>')
+      + (s.lat ? "" : '<div style="font-size:11.5px;color:#C0392B;margin-top:3px;">위치 미확인 — 경로에서 빠져요</div>')
+      + '<input class="cmt" placeholder="코멘트 남기기…" value="' + esc(s.comment || "") + '" onchange="setCmt(\'' + s.id + '\', this.value)">'
+      + '<label class="holdlabel"><input type="checkbox" ' + (s.hold ? "checked" : "") + ' onchange="setHold(\'' + s.id + '\', this.checked)"> 🚫 보류 (안 가거나 이미 다녀온 곳)</label>'
+      + '<div class="spotbtns">'
+      + '<button class="mini" onclick="window.open(\'' + naver(s.name) + '\',\'_blank\')">네이버 ›</button>'
+      + (s.lat ? "" : '<button class="mini" onclick="retryGeo(\'' + s.id + '\')">위치 다시 찾기</button>')
+      + '<button class="mini" onclick="delSpot(\'' + s.id + '\')">삭제</button>'
+      + '</div></div>';
+  }
+  return html + '</div>';
+}
+function cityOf(s) {
+  const a = (s.address || "") + " " + (s.name || "");
+  if (a.includes("서귀포")) return "서귀포시";
+  if (a.includes("제주시")) return "제주시";
+  if (s.lat) return s.lat < 33.42 ? "서귀포시" : "제주시";
+  return "기타";
+}
+function renderSpots() {
+  const days = dayDates();
+  S.ui.spotOpen = S.ui.spotOpen || {};
+  const groups = [["food", "🍽️ 맛집"], ["act", "🎡 액티비티"]];
+  const CITIES = [["서귀포시", "#2E90FA"], ["제주시", "#F97316"], ["기타", "#9B9484"]];
+  let html = "";
+  groups.forEach(([cat, title]) => {
+    const items = S.spots.filter(s => s.cat === cat && !s.hold);
+    const open = !!S.ui.spotOpen[cat];
+    html += '<button class="folder" onclick="toggleFolder(\'' + cat + '\')">'
+      + (open ? "📂" : "📁") + ' ' + title
+      + '<span class="cnt">' + items.length + '개 ' + (open ? "▾" : "▸") + '</span></button>';
+    if (!open) return;
+    if (!items.length) { html += '<div class="empty">아직 저장된 곳이 없어요.</div>'; return; }
+    CITIES.forEach(([city, cc]) => {
+      const sub = items.filter(s => cityOf(s) === city);
+      if (!sub.length) return;
+      html += '<div style="font-size:12.5px;font-weight:800;color:' + cc + ';margin:11px 4px 1px;">'
+        + (city === "기타" ? "📍 지역 확인중" : "🏝️ " + city)
+        + ' <span style="color:var(--sub);font-weight:700;">' + sub.length + '</span></div>';
+      sub.forEach(s => { html += spotRow(s, days); });
+    });
+  });
+  // 보류 목록함
+  const holds = S.spots.filter(s => s.hold);
+  const holdOpen = !!S.ui.spotOpen.hold;
+  html += '<button class="folder" onclick="toggleFolder(\'hold\')">'
+    + (holdOpen ? "📂" : "📦") + ' 보류 목록'
+    + '<span class="cnt">' + holds.length + '개 ' + (holdOpen ? "▾" : "▸") + '</span></button>';
+  if (holdOpen) {
+    if (!holds.length) html += '<div class="empty">보류한 곳이 없어요. 각 스팟의 상세에서 보류 체크를 하면 여기로 모여요.</div>';
+    holds.forEach(s => { html += spotRow(s, days); });
+  }
+  $("spotList").innerHTML = html;
+}
+function toggleFolder(cat) {
+  S.ui.spotOpen = S.ui.spotOpen || {};
+  S.ui.spotOpen[cat] = !S.ui.spotOpen[cat];
+  save(); renderSpots();
+}
+function esc(t) { return (t || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+// ================= 자동 배치 =================
+function startPoint() {
+  return (S.lodging && S.lodging.lat) ? S.lodging : AIRPORT;
+}
+function autoAssign() {
+  const days = dayDates();
+  if (!days.length) { alert("여행 기간을 먼저 정해주세요."); return; }
+  const un = S.spots.filter(s => s.day === 0 && s.lat && !s.hold);
+  if (!un.length) { alert("자동 배치할 (위치가 확인된) 미정 스팟이 없어요."); return; }
+  const ordered = orderNN(startPoint(), un);
+  const n = days.length;
+  const budgets = days.map((_, i) => { const [a, b] = dayWindow(i, n); return Math.max(60, b - a); });
+  const used = days.map((_, i) => {
+    return S.spots.filter(s => s.day === i + 1).length * 120;
+  });
+  let di = 0;
+  ordered.forEach(s => {
+    while (di < n - 1 && used[di] + 120 > budgets[di]) di++;
+    s.day = di + 1;
+    used[di] += 120; // 체류 90분 + 이동 약 30분 가정
+  });
+  save(); renderSpots(); renderPlan();
+}
+
+// ================= 일정 & 경로 렌더 =================
+const JEJU_OUTLINE = [[126.16,33.31],[126.21,33.40],[126.30,33.47],[126.38,33.51],[126.46,33.56],[126.56,33.57],[126.70,33.56],[126.84,33.54],[126.92,33.51],[126.97,33.44],[126.93,33.35],[126.84,33.31],[126.72,33.27],[126.60,33.24],[126.48,33.23],[126.36,33.21],[126.26,33.22],[126.19,33.26]];
+function mapSVG(start, stops) {
+  const pts = [start, ...stops];
+  const W = 340, H = 225;
+  const inJeju = pts.every(p => p.lng > 126.05 && p.lng < 127.05 && p.lat > 33.05 && p.lat < 33.75);
+  let minLo, maxLo, minLa, maxLa, pad;
+  if (inJeju) { minLo = 126.10; maxLo = 127.00; minLa = 33.14; maxLa = 33.63; pad = 8; }
+  else {
+    pad = 32;
+    const lats = pts.map(p => p.lat), lngs = pts.map(p => p.lng);
+    minLa = Math.min(...lats); maxLa = Math.max(...lats);
+    minLo = Math.min(...lngs); maxLo = Math.max(...lngs);
+    if (maxLa - minLa < 0.004) { minLa -= 0.002; maxLa += 0.002; }
+    if (maxLo - minLo < 0.004) { minLo -= 0.002; maxLo += 0.002; }
+  }
+  const sLo = maxLo - minLo, sLa = maxLa - minLa;
+  const X = p => pad + (p.lng - minLo) / sLo * (W - pad * 2);
+  const Y = p => H - pad - (p.lat - minLa) / sLa * (H - pad * 2);
+  let svg = '<svg class="map" viewBox="0 0 ' + W + ' ' + H + '">';
+  if (inJeju) {
+    svg += '<path d="' + JEJU_OUTLINE.map((c, i) => (i ? "L" : "M") + X({lng:c[0],lat:c[1]}).toFixed(1) + "," + Y({lng:c[0],lat:c[1]}).toFixed(1)).join(" ") + ' Z" fill="#F6EFDC" stroke="#D8CFB6" stroke-width="2"/>'
+      + '<text x="' + X({lng:126.53,lat:33.36}) + '" y="' + Y({lng:126.53,lat:33.36}) + '" text-anchor="middle" font-size="10" fill="#C9BFA6" font-weight="700">한라산 ⛰️</text>';
+  }
+  const path = pts.map((p, i) => (i ? "L" : "M") + X(p) + "," + Y(p)).join(" ");
+  svg += '<path d="' + path + '" fill="none" stroke="#2E6B5E" stroke-width="3" stroke-dasharray="7 6" stroke-linecap="round"/>';
+  pts.forEach((p, i) => {
+    svg += '<circle cx="' + X(p) + '" cy="' + Y(p) + '" r="' + (i===0?13:11) + '" fill="' + (i===0?"#26251F":(p.cat==="food"?"#F97316":"#2E90FA")) + '" stroke="#fff" stroke-width="3"/>'
+      + '<text x="' + X(p) + '" y="' + (Y(p)+4) + '" text-anchor="middle" font-size="10.5" fill="#fff" font-weight="800">' + (i===0?"숙":i) + '</text>'
+      + '<text x="' + X(p) + '" y="' + (Y(p)-16) + '" text-anchor="middle" font-size="9.5" fill="#4B473C" font-weight="700">'
+      + esc(p.name.length > 7 ? p.name.slice(0,7) + "…" : p.name) + '</text>';
+  });
+  return svg + '</svg>';
+}
+
+function renderPlan() {
+  const days = dayDates();
+  const n = days.length;
+  const start = startPoint();
+  let html = "";
+  const unCount = S.spots.filter(s => s.day === 0 && !s.hold).length;
+  if (unCount) html += '<div class="hint" style="margin-top:10px;">Day 미정 스팟이 ' + unCount + '개 있어요. 스팟 목록에서 Day를 고르거나 자동 배치를 눌러주세요.</div>';
+
+  days.forEach((date, i) => {
+    const [ws, we] = dayWindow(i, n);
+    const daySpots = S.spots.filter(s => s.day === i + 1 && !s.hold);
+    const withGeo = daySpots.filter(s => s.lat);
+    const noGeo = daySpots.filter(s => !s.lat);
+    html += '<div class="dayplan">'
+      + '<div class="daytitle">Day ' + (i+1) + ' · ' + fmtDate(date) + '</div>'
+      + '<div class="window">⏰ 가용 시간 ' + fromMin(ws) + ' ~ ' + fromMin(we)
+      + (i===0 && S.arrTime ? " (비행기 도착 반영)" : "") + (i===n-1 && S.retTime ? " (비행기 출발 반영)" : "") + '</div>';
+
+    if (!daySpots.length) {
+      html += '<div class="empty">아직 배치된 스팟이 없어요.</div></div>';
+      return;
+    }
+    const ordered = orderNN(start, withGeo);
+    if (ordered.length) {
+      html += mapSVG(start, ordered);
+      html += '<div class="leg"><div class="num home">숙</div><div style="font-weight:700;font-size:14px;align-self:center;">' + esc(start.name) + '</div></div>';
+      let prev = start, totalKm = 0, totalMin = 0;
+      ordered.forEach((s, idx) => {
+        const km = haversine(prev, s), rkm = roadKm(km), cm = carMin(km);
+        totalKm += rkm; totalMin += cm + 90;
+        html += '<div class="legmeta">↓ 약 ' + rkm.toFixed(1) + 'km · 🚗 ' + cm + '분</div>'
+          + '<div class="leg"><div class="num">' + (idx+1) + '</div>'
+          + '<div style="flex:1;"><div style="font-weight:700;font-size:14px;">' + esc(s.name) + ' ' + (s.cat==="food"?"🍽️":"🎡") + '</div>'
+          + (s.comment ? '<div class="addr">💬 ' + esc(s.comment) + '</div>' : "")
+          + '</div>'
+          + '<button class="mini" onclick="window.open(\'' + naver(s.name) + '\',\'_blank\')">네이버 ›</button></div>';
+        prev = s;
+      });
+      html += '<div class="total">이동 약 ' + totalKm.toFixed(1) + 'km · 예상 소요 약 ' + Math.floor(totalMin/60) + '시간 ' + (totalMin%60) + '분 (장소당 90분 체류 기준)</div>';
+      if (totalMin > we - ws) html += '<div class="warn">⚠️ 가용 시간(' + Math.floor((we-ws)/60) + '시간 ' + ((we-ws)%60) + '분)보다 빡빡해요. 한두 곳을 다른 날로 옮기는 걸 추천!</div>';
+    }
+    if (noGeo.length) html += '<div class="hint">📍 위치 미확인이라 경로에서 빠진 곳: ' + noGeo.map(s => esc(s.name)).join(", ") + '</div>';
+    html += '</div>';
+  });
+  $("planBody").innerHTML = html || '<div class="empty">여행 기간을 정하면 Day별 일정이 나타나요.</div>';
+}
+
+// ================= 입력 바인딩 & 초기화 =================
+function bind(id, get, set) {
+  $(id).value = get() || "";
+  $(id).addEventListener("change", () => { set($(id).value); save(); });
+}
+bind("tripStart", () => S.tripStart, v => { S.tripStart = v; fetchWeather(); renderSpots(); renderPlan(); });
+bind("tripEnd", () => S.tripEnd, v => { S.tripEnd = v; fetchWeather(); renderSpots(); renderPlan(); });
+bind("arrTime", () => S.arrTime, v => { S.arrTime = v; renderPlan(); });
+bind("retTime", () => S.retTime, v => { S.retTime = v; renderPlan(); });
+bind("goMemo", () => S.goMemo, v => S.goMemo = v);
+bind("backMemo", () => S.backMemo, v => S.backMemo = v);
+bind("carCompany", () => S.car.company, v => S.car.company = v);
+bind("carResNo", () => S.car.resNo, v => S.car.resNo = v);
+bind("carPickup", () => S.car.pickup, v => S.car.pickup = v);
+bind("carDropoff", () => S.car.dropoff, v => S.car.dropoff = v);
+bind("carMemo", () => S.car.memo, v => S.car.memo = v);
+if (S.lodging) { $("lodgeName").value = S.lodging.name || ""; $("lodgeAddr").value = S.lodging.address || ""; }
+
+// ================= 접기/펼치기 =================
+function applySec(k) {
+  const body = $("sec-" + k), btn = $("tg-" + k);
+  if (!body || !btn) return;
+  body.style.display = S.ui[k] ? "none" : "";
+  btn.textContent = S.ui[k] ? "▸" : "▾";
+}
+function toggleSec(k) { S.ui[k] = !S.ui[k]; save(); applySec(k); }
+function toggleGuide(i) {
+  const b = $("gBody" + i), a = $("gArrow" + i);
+  const open = b.style.display !== "none";
+  b.style.display = open ? "none" : "block";
+  a.textContent = open ? "▸" : "▾";
+}
+["weather", "flight", "car", "lodge"].forEach(applySec);
+
+// ================= 주소 검색 팝업 =================
+function openPostcode(targetId) {
+  if (!window.daum || !daum.Postcode) {
+    alert("주소 검색창을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.");
+    return;
+  }
+  new daum.Postcode({
+    oncomplete: function (data) {
+      $(targetId).value = data.roadAddress || data.jibunAddress || "";
+    }
+  }).open();
+}
+
+// ================= 장소 이름 검색 =================
+let psTarget = null, psRes = [], pendingGeo = null;
+const NOMI = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=kr&accept-language=ko&q=";
+function openPlaceSearch(t) {
+  psTarget = t;
+  $("psQuery").value = (t === "spot" ? $("spotName").value : $("lodgeName").value).trim();
+  $("psResults").innerHTML = '<div class="empty">이름으로 검색하고 목록에서 고르면 주소와 위치가 자동 저장돼요.</div>';
+  renderPSKey();
+  $("psOverlay").classList.add("on");
+  if ($("psQuery").value) doPlaceSearch();
+}
+function closePS(e) { if (!e || e.target === $("psOverlay")) $("psOverlay").classList.remove("on"); }
+function renderPSKey() {
+  if (S.kakaoKey) {
+    $("psKeyArea").innerHTML = '<div class="hint">✅ 카카오 장소검색 사용 중 · <a href="#" onclick="clearKakao();return false;" style="color:var(--sea);">키 변경</a></div>';
+  } else {
+    $("psKeyArea").innerHTML = '<div class="gbody" style="border:2px solid var(--line);border-radius:14px;margin-top:0;">'
+      + '🔑 <b>가게 이름 검색이 잘 되게 하려면 (무료, 1회 설정)</b><br>'
+      + '1) <a href="https://developers.kakao.com" target="_blank">developers.kakao.com</a> 접속 → 카카오 로그인<br>'
+      + '2) [내 애플리케이션] → [앱 만들기] (이름은 아무거나)<br>'
+      + '3) 만든 앱 클릭 → [앱 키]에서 <b>REST API 키</b> 복사해서 아래에 붙여넣기<br>'
+      + '<div class="row" style="margin-top:9px;"><input type="text" id="kakaoKeyInput" placeholder="REST API 키 붙여넣기" style="margin-bottom:0;"><button class="findbtn" style="margin-bottom:0;" onclick="saveKakao()">저장</button></div>'
+      + '</div>';
+  }
+}
+function saveKakao() {
+  const v = $("kakaoKeyInput").value.trim();
+  if (!v) return;
+  S.kakaoKey = v; save(); renderPSKey();
+  if ($("psQuery").value.trim()) doPlaceSearch();
+}
+function clearKakao() { S.kakaoKey = ""; save(); renderPSKey(); }
+
+async function kakaoSearch(q) {
+  const r = await fetch("https://dapi.kakao.com/v2/local/search/keyword.json?size=7&query=" + encodeURIComponent(q),
+    { headers: { Authorization: "KakaoAK " + S.kakaoKey } });
+  if (!r.ok) throw new Error("kakao-" + r.status);
+  const j = await r.json();
+  return (j.documents || []).map(d => ({
+    name: d.place_name,
+    addr: d.road_address_name || d.address_name || "",
+    lat: +d.y, lng: +d.x,
+    cat: (d.category_group_code === "FD6" || d.category_group_code === "CE7") ? "food"
+       : (d.category_group_code === "AT4" || d.category_group_code === "CT1") ? "act" : null,
+    cname: (d.category_name || "").split(">").pop().trim()
+  }));
+}
+async function nomiSearch(q) {
+  const r = await fetch(NOMI + encodeURIComponent(q));
+  const j = await r.json();
+  return (j || []).map(x => {
+    const parts = (x.display_name || "").split(",").map(s => s.trim());
+    return {
+      name: parts[0] || q,
+      addr: parts.slice(1).filter(p => p !== "대한민국" && !/^\d{3,}/.test(p)).reverse().join(" "),
+      lat: +x.lat, lng: +x.lon, cat: null, cname: ""
+    };
+  });
+}
+async function doPlaceSearch() {
+  const q = $("psQuery").value.trim();
+  if (!q) return;
+  $("psResults").innerHTML = '<div class="empty">검색 중…</div>';
+  psRes = [];
+  if (S.kakaoKey) {
+    try {
+      psRes = await kakaoSearch(q.includes("제주") ? q : "제주 " + q);
+      if (!psRes.length) psRes = await kakaoSearch(q);
+    } catch (e) {
+      if (String(e.message).includes("401")) {
+        S.kakaoKey = ""; save(); renderPSKey();
+        $("psResults").innerHTML = '<div class="empty">⚠️ 카카오 키가 올바르지 않아요. 아래에서 REST API 키를 다시 등록해 주세요.</div>';
+        return;
+      }
+    }
+  }
+  if (!psRes.length) {
+    try {
+      psRes = await nomiSearch(q + " 제주");
+      if (!psRes.length) psRes = await nomiSearch(q);
+    } catch (e) {}
+  }
+  if (!psRes.length) {
+    $("psResults").innerHTML = '<div class="empty">결과가 없어요 😢 '
+      + (S.kakaoKey ? "띄어쓰기를 바꾸거나 다른 이름으로 검색해 보세요." : "아래 🔑 1회 설정을 하면 가게 이름 검색이 훨씬 잘 돼요!") + '</div>';
+    return;
+  }
+  $("psResults").innerHTML = psRes.map((r, i) =>
+    '<div class="psitem" onclick="pickPS(' + i + ')"><b>' + esc(r.name) + '</b>'
+    + (r.cname ? ' <span style="font-size:11px;color:var(--sub);">' + esc(r.cname) + '</span>' : '')
+    + '<div class="addr">' + esc(r.addr) + '</div></div>').join("");
+}
+function pickPS(i) {
+  const r = psRes[i];
+  if (!r) return;
+  if (psTarget === "spot") {
+    $("spotAddr").value = r.addr;
+    if (!$("spotName").value.trim()) $("spotName").value = r.name;
+    if (r.cat) $("spotCat").value = r.cat;
+  } else {
+    $("lodgeAddr").value = r.addr;
+    if (!$("lodgeName").value.trim()) $("lodgeName").value = r.name;
+  }
+  pendingGeo = { target: psTarget, lat: r.lat, lng: r.lng, addr: r.addr };
+  $("psOverlay").classList.remove("on");
+}
+function openPostcodeFromPS() {
+  $("psOverlay").classList.remove("on");
+  openPostcode(psTarget === "spot" ? "spotAddr" : "lodgeAddr");
+}
+
+// ================= 초기 실행 =================
+fetchWeather();
+renderSpots();
+renderPlan();</script>
+</body>
+</html>
