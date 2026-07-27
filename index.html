@@ -292,7 +292,7 @@
 // ================= 상태 =================
 const AIRPORT = { name: "제주공항", lat: 33.5104, lng: 126.4914 };
 
-let S = {
+let S = Object.assign({
   tripStart: "",
   tripEnd: "",
   arrTime: "",
@@ -311,7 +311,19 @@ let S = {
   spots: [],
   dayStart: {},
   dayEnd: {}
+}, window.SHARED_DATA || {});
+
+S.ui = S.ui || {};
+S.car = S.car || {
+  company: "",
+  resNo: "",
+  pickup: "",
+  dropoff: "",
+  memo: ""
 };
+S.spots = S.spots || [];
+S.dayStart = S.dayStart || {};
+S.dayEnd = S.dayEnd || {};
 
 function save() {}
 // ================= 분류 자동 추천 =================
