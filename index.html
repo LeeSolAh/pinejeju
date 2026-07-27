@@ -289,26 +289,30 @@
 
 <script>
 // ================= 상태 =================
-const KEY = "jeju-trip-v1";
 const AIRPORT = { name: "제주공항", lat: 33.5104, lng: 126.4914 };
-let S = {
-  tripStart: "2026-08-13", tripEnd: "2026-08-16",
-  arrTime: "", retTime: "", goMemo: "", backMemo: "", ui: {},
-  car: { company: "", resNo: "", pickup: "", dropoff: "", memo: "" },
-  lodging: null, // {name, address, lat, lng}
-  spots: [] // {id, name, cat, address, comment, day, lat, lng}
-};
-try {
-  const saved = localStorage.getItem(KEY);
-  if (saved) S = Object.assign(S, JSON.parse(saved));
-} catch (e) {}
-S.ui = S.ui || {};
-S.dayStart = S.dayStart || {};
-S.dayEnd = S.dayEnd || {};
-if (S.flightMemo && !S.goMemo) S.goMemo = S.flightMemo;
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-const $ = (id) => document.getElementById(id);
 
+let S = {
+  tripStart: "",
+  tripEnd: "",
+  arrTime: "",
+  retTime: "",
+  goMemo: "",
+  backMemo: "",
+  ui: {},
+  car: {
+    company: "",
+    resNo: "",
+    pickup: "",
+    dropoff: "",
+    memo: ""
+  },
+  lodging: null,
+  spots: [],
+  dayStart: {},
+  dayEnd: {}
+};
+
+function save() {}
 // ================= 분류 자동 추천 =================
 const FOOD_WORDS = ["식당","맛집","국밥","해장","김밥","국수","냉면","칼국수","라멘","우동","초밥","스시","오마카세","횟집","물회","수산","고기","흑돼지","갈비","삼겹","곱창","치킨","닭","백숙","전복","해물","보말","성게","전골","찌개","떡볶이","분식","돈까스","카레","버거","피자","파스타","브런치","베이커리","빵","도넛","디저트","케이크","카페","커피","빙수","젤라또","아이스크림","포차","주점","맥주","다이닝","레스토랑","뷔페","오는정","해녀"];
 const ACT_WORDS = ["박물관","미술관","갤러리","전시","공원","수목원","정원","식물원","동물원","아쿠아리움","해변","해수욕장","오름","폭포","계곡","둘레길","숲","곶자왈","등대","전망대","케이블카","루지","카트","서핑","요트","낚시","승마","테마파크","랜드","월드","체험","공방","서점","책방","사찰","마을","시장","거리","포구","항","목장","농장","글램핑","섭지","우도","비자림","절물"];
@@ -947,9 +951,65 @@ function openPostcodeFromPS() {
 }
 
 // ================= 초기 실행 =================
-fetchWeather();
-renderSpots();
-renderCafes();
-renderPlan();</script>
+// ================= 초기 실행 =================
+async function loadSharedData() {
+  try {
+    const response = await fetch("./data.json?v=" + Date.now());
+
+    if (!response.ok) {
+      throw new Error("data.json을 불러오지 못했습니다.");
+    }
+
+    const data = await response.json();
+    S = Object.assign(S, data);
+
+    S.ui = S.ui || {};
+    S.dayStart = S.dayStart || {};
+    S.dayEnd = S.dayEnd || {};
+    S.car = S.car || {
+      company: "",
+      resNo: "",
+      pickup: "",
+      dropoff: "",
+      memo: ""
+    };
+    S.spots = S.spots || [];
+
+    if (S.flightMemo && !S.goMemo) {
+      S.goMemo = S.flightMemo;
+    }
+
+    $("tripStart").value = S.tripStart || "";
+    $("tripEnd").value = S.tripEnd || "";
+    $("arrTime").value = S.arrTime || "";
+    $("retTime").value = S.retTime || "";
+    $("goMemo").value = S.goMemo || "";
+    $("backMemo").value = S.backMemo || "";
+
+    $("carCompany").value = S.car.company || "";
+    $("carResNo").value = S.car.resNo || "";
+    $("carPickup").value = S.car.pickup || "";
+    $("carDropoff").value = S.car.dropoff || "";
+    $("carMemo").value = S.car.memo || "";
+
+    if (S.lodging) {
+      $("lodgeName").value = S.lodging.name || "";
+      $("lodgeAddr").value = S.lodging.address || "";
+    }
+
+    ["weather", "flight", "car", "lodge", "cafe"].forEach(applySec);
+
+    fetchWeather();
+    renderSpots();
+    renderCafes();
+    renderPlan();
+
+  } catch (error) {
+    console.error(error);
+    alert("공유 여행 정보를 불러오지 못했습니다. data.json 내용을 확인해 주세요.");
+  }
+}
+
+loadSharedData();</script>
 </body>
 </html>
