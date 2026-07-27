@@ -1,5 +1,4 @@
 (() => {
-  const STORAGE_KEY = "jeju-trip-v1";
   const DATA_URL = "./data.json";
 
   try {
@@ -11,10 +10,10 @@
       throw new Error(`data.json 요청 실패: HTTP ${xhr.status}`);
     }
 
-    const sharedData = JSON.parse(xhr.responseText);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sharedData));
+    window.SHARED_DATA = JSON.parse(xhr.responseText);
   } catch (error) {
     console.error("공유 여행 데이터 불러오기 실패:", error);
+    window.SHARED_DATA = null;
 
     alert(
       "공유 여행 정보를 불러오지 못했습니다.\n" +
