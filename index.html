@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>제주 여행 플래너 🍊</title>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <style>
   :root {
     --bg:#FBF7F0; --card:#fff; --ink:#26251F; --sub:#9B9484; --line:#EEE8DA;
@@ -64,6 +65,12 @@
   svg.map { width:100%; background:#EAF4FB; border-radius:18px; margin-top:6px; }
   .empty { color:var(--sub); font-size:13px; padding:8px 4px; line-height:1.6; }
   .savedok { color:var(--green); font-size:12px; font-weight:700; margin-left:8px; }
+  .cardhead { display:flex; align-items:center; }
+  .cardhead .label { margin-bottom:0; flex:1; }
+  .toggle { border:none; background:#F0EBE0; color:#6E6858; border-radius:999px;
+    width:32px; height:32px; font-size:14px; flex-shrink:0; }
+  .findbtn { flex:0 0 auto; width:auto; border:none; background:var(--sea); color:#fff;
+    border-radius:14px; padding:0 14px; font-size:13px; font-weight:700; margin-bottom:10px; }
 </style>
 </head>
 <body>
@@ -85,47 +92,60 @@
 
   <!-- 날씨 -->
   <div class="card">
-    <div class="label">🌤️ 제주 날씨</div>
-    <div id="weatherBody" class="weather-strip"><div class="empty">날씨 불러오는 중…</div></div>
-    <div class="hint" id="weatherHint"></div>
+    <div class="cardhead">
+      <div class="label">🌤️ 제주 날씨</div>
+      <button class="toggle" id="tg-weather" onclick="toggleSec('weather')">▾</button>
+    </div>
+    <div id="sec-weather">
+      <div id="weatherBody" class="weather-strip"><div class="empty">날씨 불러오는 중…</div></div>
+      <div class="hint" id="weatherHint"></div>
+    </div>
   </div>
 
   <!-- 항공권 -->
   <div class="card">
-    <div class="label">✈️ 항공권 정보</div>
-    <div class="row">
-      <div>
-        <div class="hint" style="margin:0 0 4px 4px;">가는 편 · 제주 도착 시각</div>
-        <input type="time" id="arrTime">
-      </div>
-      <div>
-        <div class="hint" style="margin:0 0 4px 4px;">오는 편 · 제주 출발 시각</div>
-        <input type="time" id="retTime">
-      </div>
+    <div class="cardhead">
+      <div class="label">✈️ 항공권 정보</div>
+      <button class="toggle" id="tg-flight" onclick="toggleSec('flight')">▾</button>
     </div>
-    <input type="text" id="flightMemo" placeholder="메모 (편명, 예약번호 등)">
-    <div class="hint">첫날 일정은 도착 후 70분(수하물+렌트카 인수), 마지막 날은 출발 2시간 30분 전까지로 자동 계산돼요.</div>
+    <div id="sec-flight">
+      <div class="hint" style="margin:0 0 4px 4px;">🛬 가는 편 · 제주 도착 시각</div>
+      <input type="time" id="arrTime">
+      <input type="text" id="goMemo" placeholder="가는 편 메모 (편명, 예약번호 등)">
+      <div class="hint" style="margin:4px 0 4px 4px;">🛫 오는 편 · 제주 출발 시각</div>
+      <input type="time" id="retTime">
+      <input type="text" id="backMemo" placeholder="오는 편 메모 (편명, 예약번호 등)">
+      <div class="hint">첫날 일정은 도착 후 70분(수하물+렌트카 인수), 마지막 날은 출발 2시간 30분 전까지로 자동 계산돼요.</div>
+    </div>
   </div>
 
   <!-- 렌트카 -->
   <div class="card">
-    <div class="label">🚗 렌트카 정보</div>
-    <div class="row">
-      <input type="text" id="carCompany" placeholder="업체명">
-      <input type="text" id="carResNo" placeholder="예약번호">
+    <div class="cardhead">
+      <div class="label">🚗 렌트카 정보</div>
+      <button class="toggle" id="tg-car" onclick="toggleSec('car')">▾</button>
     </div>
-    <div class="row">
-      <input type="text" id="carPickup" placeholder="인수 (예: 13일 11:00)">
-      <input type="text" id="carDropoff" placeholder="반납 (예: 16일 17:00)">
+    <div id="sec-car">
+      <div class="row">
+        <input type="text" id="carCompany" placeholder="업체명">
+        <input type="text" id="carResNo" placeholder="예약번호">
+      </div>
+      <div class="row">
+        <input type="text" id="carPickup" placeholder="인수 (예: 13일 11:00)">
+        <input type="text" id="carDropoff" placeholder="반납 (예: 16일 17:00)">
+      </div>
+      <input type="text" id="carMemo" placeholder="메모 (보험, 차종 등)">
     </div>
-    <input type="text" id="carMemo" placeholder="메모 (보험, 차종 등)">
   </div>
 
   <!-- 숙소 -->
   <div class="card">
     <div class="label">🏠 숙소 (경로의 출발점)</div>
     <input type="text" id="lodgeName" placeholder="숙소 이름">
-    <input type="text" id="lodgeAddr" placeholder="숙소 주소 (경로 계산에 필요)">
+    <div class="row">
+      <input type="text" id="lodgeAddr" placeholder="숙소 주소 (경로 계산에 필요)">
+      <button class="findbtn" onclick="openPostcode('lodgeAddr')">🔍 검색</button>
+    </div>
     <button class="primary green" onclick="saveLodging()">숙소 저장 · 위치 찾기</button>
     <div class="hint" id="lodgeStatus">숙소가 없으면 제주공항에서 출발하는 것으로 계산해요.</div>
   </div>
@@ -134,13 +154,14 @@
   <div class="card">
     <div class="label">📍 가고 싶은 스팟 추가</div>
     <input type="text" id="spotName" placeholder="이름 (예: 우진해장국)">
+    <select id="spotCat">
+      <option value="auto">분류: 자동</option>
+      <option value="food">🍽️ 맛집</option>
+      <option value="act">🎡 액티비티</option>
+    </select>
     <div class="row">
-      <select id="spotCat">
-        <option value="auto">분류: 자동</option>
-        <option value="food">🍽️ 맛집</option>
-        <option value="act">🎡 액티비티</option>
-      </select>
       <input type="text" id="spotAddr" placeholder="주소 (선택)">
+      <button class="findbtn" onclick="openPostcode('spotAddr')">🔍 검색</button>
     </div>
     <input type="text" id="spotCmt" placeholder="코멘트 (예: 웨이팅 있음, 일몰 맛집)">
     <button class="primary" onclick="addSpot()">＋ 스팟 저장</button>
@@ -168,7 +189,7 @@ const KEY = "jeju-trip-v1";
 const AIRPORT = { name: "제주공항", lat: 33.5104, lng: 126.4914 };
 let S = {
   tripStart: "2026-08-13", tripEnd: "2026-08-16",
-  arrTime: "", retTime: "", flightMemo: "",
+  arrTime: "", retTime: "", goMemo: "", backMemo: "", ui: {},
   car: { company: "", resNo: "", pickup: "", dropoff: "", memo: "" },
   lodging: null, // {name, address, lat, lng}
   spots: [] // {id, name, cat, address, comment, day, lat, lng}
@@ -177,6 +198,8 @@ try {
   const saved = localStorage.getItem(KEY);
   if (saved) S = Object.assign(S, JSON.parse(saved));
 } catch (e) {}
+S.ui = S.ui || {};
+if (S.flightMemo && !S.goMemo) S.goMemo = S.flightMemo;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = (id) => document.getElementById(id);
 
@@ -468,13 +491,37 @@ bind("tripStart", () => S.tripStart, v => { S.tripStart = v; fetchWeather(); ren
 bind("tripEnd", () => S.tripEnd, v => { S.tripEnd = v; fetchWeather(); renderSpots(); renderPlan(); });
 bind("arrTime", () => S.arrTime, v => { S.arrTime = v; renderPlan(); });
 bind("retTime", () => S.retTime, v => { S.retTime = v; renderPlan(); });
-bind("flightMemo", () => S.flightMemo, v => S.flightMemo = v);
+bind("goMemo", () => S.goMemo, v => S.goMemo = v);
+bind("backMemo", () => S.backMemo, v => S.backMemo = v);
 bind("carCompany", () => S.car.company, v => S.car.company = v);
 bind("carResNo", () => S.car.resNo, v => S.car.resNo = v);
 bind("carPickup", () => S.car.pickup, v => S.car.pickup = v);
 bind("carDropoff", () => S.car.dropoff, v => S.car.dropoff = v);
 bind("carMemo", () => S.car.memo, v => S.car.memo = v);
 if (S.lodging) { $("lodgeName").value = S.lodging.name || ""; $("lodgeAddr").value = S.lodging.address || ""; }
+
+// ================= 접기/펼치기 =================
+function applySec(k) {
+  const body = $("sec-" + k), btn = $("tg-" + k);
+  if (!body || !btn) return;
+  body.style.display = S.ui[k] ? "none" : "";
+  btn.textContent = S.ui[k] ? "▸" : "▾";
+}
+function toggleSec(k) { S.ui[k] = !S.ui[k]; save(); applySec(k); }
+["weather", "flight", "car"].forEach(applySec);
+
+// ================= 주소 검색 팝업 =================
+function openPostcode(targetId) {
+  if (!window.daum || !daum.Postcode) {
+    alert("주소 검색창을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.");
+    return;
+  }
+  new daum.Postcode({
+    oncomplete: function (data) {
+      $(targetId).value = data.roadAddress || data.jibunAddress || "";
+    }
+  }).open();
+}
 
 fetchWeather();
 renderSpots();
